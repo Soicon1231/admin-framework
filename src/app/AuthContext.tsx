@@ -1,6 +1,7 @@
-'use client'
-import { jwtDecode } from 'jwt-decode';
-import { createContext, useContext, useState, ReactNode } from 'react';
+"use client";
+import { jwtDecode } from "jwt-decode";
+import { useRouter } from "next/navigation";
+import { createContext, useContext, useState, ReactNode } from "react";
 
 interface User {
   email: string;
@@ -21,16 +22,17 @@ interface AuthProviderProps {
 
 export function AuthProvider({ children }: AuthProviderProps) {
   const [user, setUser] = useState<User | null>(null);
+  const router = useRouter();
 
   const login = async (email: string, password: string): Promise<boolean> => {
-    const res = await fetch('/api/auth/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+    const res = await fetch("/api/auth/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email, password }),
     });
     const data = await res.json();
     if (data.token) {
-      localStorage.setItem('token', data.token);
+      document.cookie = `token=${data.token}; path=/; HttpOnly; Secure; max-age=3600`;
       setUser(jwtDecode<User>(data.token));
       return true;
     }
@@ -38,8 +40,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
   };
 
   const logout = () => {
-    localStorage.removeItem('token');
+    document.cookie = 'token=; path=/; max-age=0';
     setUser(null);
+    router.push('/');
   };
 
   return (
@@ -52,7 +55,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider');
+    throw new Error("useAuth must be used within an AuthProvider");
   }
   return context;
 };
