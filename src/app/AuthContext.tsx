@@ -1,7 +1,8 @@
+// src/app/AuthContext.tsx
 "use client";
+
 import { jwtDecode } from "jwt-decode";
-import { useRouter } from "next/navigation";
-import { createContext, useContext, useState, ReactNode } from "react";
+import { createContext, useContext, useState, ReactNode, useEffect } from "react";
 
 interface User {
   email: string;
@@ -10,6 +11,7 @@ interface User {
 
 interface AuthContextType {
   user: User | null;
+  isAuthenticated: boolean;
   login: (email: string, password: string) => Promise<boolean>;
   logout: () => void;
 }
@@ -21,8 +23,38 @@ interface AuthProviderProps {
 }
 
 export function AuthProvider({ children }: AuthProviderProps) {
+  // Derive initial state from cookie
+  const getTokenFromCookie = () => {
+  if (typeof document === "undefined") return null;
+  return document.cookie
+    .split("; ")
+    .find((row) => row.startsWith("token="))
+    ?.split("=")[1] || null;
+};
+
+const getInitialToken = () => {
+  const token = getTokenFromCookie();
+  return !!token;
+};
+
   const [user, setUser] = useState<User | null>(null);
-  const router = useRouter();
+  const [isAuthenticated, setIsAuthenticated] = useState(getInitialToken);
+
+  useEffect(() => {
+  const handleCookieChange = () => {
+    const token = getTokenFromCookie();
+    const authState = !!token;
+    setIsAuthenticated(authState);
+    if (token) {
+      setUser(jwtDecode<User>(token));
+    } else {
+      setUser(null);
+    }
+  };
+    handleCookieChange(); // Initial sync
+   const interval = setInterval(handleCookieChange, 1000);
+  return () => clearInterval(interval);
+  }, []);
 
   const login = async (email: string, password: string): Promise<boolean> => {
     const res = await fetch("/api/auth/login", {
@@ -31,8 +63,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
       body: JSON.stringify({ email, password }),
     });
     const data = await res.json();
+
     if (data.token) {
-      document.cookie = `token=${data.token}; path=/; HttpOnly; Secure; max-age=3600`;
+      document.cookie = `token=${data.token}; path=/; secure; max-age=3600`;
+      setIsAuthenticated(true);
       setUser(jwtDecode<User>(data.token));
       return true;
     }
@@ -40,13 +74,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
   };
 
   const logout = () => {
-    document.cookie = 'token=; path=/; max-age=0';
+    document.cookie = "token=; path=/; max-age=0";
+    setIsAuthenticated(false);
     setUser(null);
-    router.push('/');
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, logout }}>
+    <AuthContext.Provider value={{ user, isAuthenticated, login, logout }}>
       {children}
     </AuthContext.Provider>
   );

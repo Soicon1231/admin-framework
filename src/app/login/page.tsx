@@ -6,8 +6,8 @@ import { useAuth } from "../AuthContext";
 import { useRouter } from "next/navigation";
 
 export default function Login() {
-  const [email, setEmail] = useState<string>("");
-  const [password, setPassword] = useState<string>("");
+  const [email, setEmail] = useState<string>("admin@example.com");
+  const [password, setPassword] = useState<string>("password");
   const { login } = useAuth();
   const router = useRouter();
 
@@ -15,6 +15,7 @@ export default function Login() {
     e.preventDefault();
     const success = await login(email, password);
     if (success) {
+      router.replace("/dashboard"); // Redirect to dashboard or home page after login
     } else {
       alert("Login failed");
     }

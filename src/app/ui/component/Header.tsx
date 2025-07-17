@@ -9,9 +9,9 @@ export default function Header() {
 
   return (
     <header className="bg-white shadow p-4 flex justify-between items-center">
-      <h1 className="text-xl font-semibold">Admin Dashboard</h1>
+      <h1 className="text-xl font-semibold text-black">Admin Dashboard</h1>
       <div>
-        <span className="mr-4">{user?.email}</span>
+        <span className="mr-4 text-black">{user?.email}</span>
         <button
           onClick={() => {
             logout();

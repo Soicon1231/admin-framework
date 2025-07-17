@@ -15,7 +15,7 @@ export async function POST(req: NextRequest) {
     const token = jwt.sign(
       { email, role: 'admin' },
       secret,
-      { expiresIn: '1m' }
+      { expiresIn: '1h' }
     );
     return NextResponse.json({ token });
   }
