@@ -22,16 +22,25 @@ export async function middleware(request: NextRequest) {
   }
 
   if (token && pathname === "/") {
-    console.log("Redirecting to /dashboard: Authenticated user on root");
-    return NextResponse.redirect(new URL("/dashboard", origin));
+    try {
+      const secret = new TextEncoder().encode(process.env.JWT_SECRET || "default_secret");
+      const { payload } = await jwtVerify(token, secret);
+      const tenantId = (payload as any).user.tenantId;
+      console.log("Redirecting to /dashboard for tenant:", tenantId);
+      return NextResponse.redirect(new URL(`/dashboard?tenant=${tenantId}`, origin));
+    } catch (error: any) {
+      console.log("Token verification failed:", error.message);
+      const response = NextResponse.redirect(new URL("/login", origin));
+      response.cookies.delete("token");
+      return response;
+    }
   }
 
   // Token verification
   if (token) {
     try {
       const secret = new TextEncoder().encode(process.env.JWT_SECRET || "default_secret");
-      const { payload } = await jwtVerify(token, secret);
-      console.log("Token verified, payload:", payload);
+      await jwtVerify(token, secret);
     } catch (error: any) {
       console.log("Token verification failed:", error.message);
       const response = NextResponse.redirect(new URL("/login", origin));
